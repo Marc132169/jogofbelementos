@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fábrica de Elementos</title>
+    <!-- Precarregar sons -->
+    <audio id="success-sound" src="https://assets.mixkit.co/active_storage/sfx/2019/10/18/sfx-2019-10-18-1539_preview.mp3" preload="auto"></audio>
+    <audio id="error-sound" src="https://assets.mixkit.co/active_storage/sfx/2019/10/18/sfx-2019-10-18-1541_preview.mp3" preload="auto"></audio>
+    <audio id="special-sound" src="https://assets.mixkit.co/active_storage/sfx/2019/10/18/sfx-2019-10-18-1566_preview.mp3" preload="auto"></audio>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #2a3a82 0%, #7d4aac 50%, #e06bc9 100%);
+            background-size: 400% 400%;
+            animation: gradientBG 15s ease infinite;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            color: white;
+            padding: 20px;
+            position: relative;
+            overflow-y: scroll;
+
+        }
+        
+        /* Animação do gradiente de fundo */
+        @keyframes gradientBG {
+            0% { background-position: 0% 50% }
+            50% { background-position: 100% 50% }
+            100% { background-position: 0% 50% }
+        }
+        
+        /* Partículas de fundo */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                radial-gradient(circle, rgba(255,255,255,0.2) 1px, transparent 1px),
+                radial-gradient(circle, rgba(255,255,255,0.1) 2px, transparent 2px),
+                radial-gradient(circle, rgba(255,215,0,0.1) 3px, transparent 3px);
+            background-size: 50px 50px, 100px 100px, 150px 150px;
+            background-position: 0 0, 25px 25px, 50px 50px;
+            animation: particleFloat 60s linear infinite;
+            pointer-events: none;
+            z-index: -1;
+        }
+        
+        @keyframes particleFloat {
+            0% { background-position: 0 0, 25px 25px; }
+            100% { background-position: 1000px 1000px, 1025px 1025px; }
+        }
+
+        .container {
+            width: 90%;
+            max-width: 800px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 15px rgba(255, 255, 255, 0.1);
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+        
+        .container:hover {
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 20px rgba(255, 255, 255, 0.2);
+        }
+
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
+            background-size: 200% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+            animation: textShine 5s linear infinite;
+        }
+        
+        @keyframes textShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .workspace {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            min-height: 150px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .workspace-slot {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(5px);
+        }
+
+        .workspace-slot.active {
+            box-shadow: 0 0 20px rgba(0, 255, 255, 0.7);
+            transform: scale(1.05);
+            border-color: rgba(0, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .result-area {
+            min-height: 120px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .result-message {
+            font-size: 1.2em;
+            margin-bottom: 10px;
+            min-height: 30px;
+        }
+
+        .result-element {
+            width: 100px;
+            height: 100px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
+
+        .result-element.show {
+            opacity: 1;
+        }
+
+        .inventory-title {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+
+        .inventory {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            max-height: 300px;
+            overflow-y: auto;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(0, 255, 255, 0.5) rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Estilização da scrollbar para navegadores baseados em WebKit (Chrome, Safari, Edge) */
+        .inventory::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .inventory::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        
+        .inventory::-webkit-scrollbar-thumb {
+            background: linear-gradient(180deg, #00ffff, #ff00ff);
+            border-radius: 10px;
+            box-shadow: 0 0 5px rgba(0, 255, 255, 0.5);
+        }
+        
+        .inventory::-webkit-scrollbar-thumb:hover {
+            background: linear-gradient(180deg, #00ffff, #ff00ff);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.8);
+        }
+
+        .element {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: grab;
+            transition: all 0.3s ease;
+            position: relative;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .element:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        
+        .element.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        
+        .workspace-slot.drag-over {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.7);
+        }
+
+        .element-icon {
+            font-size: 2em;
+            margin-bottom: 5px;
+        }
+
+        .element-name {
+            font-size: 0.8em;
+            text-align: center;
+            word-break: break-word;
+            padding: 0 5px;
+        }
+
+        .element.new {
+            animation: pulse 1.5s infinite alternate, newElementPop 0.5s ease-out;
+        }
+        
+        @keyframes newElementPop {
+            0% { transform: scale(0); opacity: 0; }
+            60% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+                border-color: rgba(255, 255, 255, 0.2);
+            }
+            100% {
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.8), 0 0 30px rgba(0, 255, 255, 0.5);
+                border-color: rgba(0, 255, 255, 0.5);
+            }
+        }
+
+        .combine-button {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #ff00ff, #00ffff, #ff00ff);
+            background-size: 200% auto;
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+            animation: buttonShine 3s linear infinite;
+        }
+        
+        .combine-button:active {
+            animation: buttonClick 0.3s forwards;
+        }
+        
+        @keyframes buttonClick {
+            0% { transform: scale(1); background-position: 0% center; }
+            50% { transform: scale(0.95); background-position: 100% center; filter: brightness(1.2); }
+            100% { transform: scale(1); background-position: 0% center; }
+        }
+        
+        @keyframes buttonShine {
+            0% { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+
+        .combine-button:hover {
+            transform: scale(1.05);
+        }
+
+        .combine-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .reset-button {
+            padding: 8px 16px;
+            background: rgba(255, 0, 0, 0.7);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 1em;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+
+        .reset-button:hover {
+            transform: scale(1.05);
+        }
+
+        .counter {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 10px;
+            font-size: 0.9em;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .counter::before {
+            content: '⭐';
+            font-size: 1.2em;
+            color: gold;
+            animation: starPulse 2s infinite alternate;
+        }
+        
+        @keyframes starPulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            100% { transform: scale(1.2); opacity: 1; }
+        }
+        
+        /* Barra de progresso */
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #00ffff, #ff00ff);
+            width: 0%;
+            transition: width 0.5s ease;
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.7);
+        }
+        
+        /* Animações para ícones dos elementos */
+        .fire-icon {
+            animation: fireAnimation 1s infinite alternate;
+            filter: drop-shadow(0 0 5px rgba(255, 100, 0, 0.8));
+        }
+        
+        .water-icon {
+            animation: waterAnimation 2s infinite alternate;
+            filter: drop-shadow(0 0 5px rgba(0, 150, 255, 0.8));
+        }
+        
+        .earth-icon {
+            animation: earthAnimation 3s infinite alternate;
+            filter: drop-shadow(0 0 5px rgba(0, 150, 0, 0.8));
+        }
+        
+        .air-icon {
+            animation: airAnimation 1.5s infinite linear;
+            filter: drop-shadow(0 0 5px rgba(200, 200, 255, 0.8));
+        }
+        
+        @keyframes fireAnimation {
+            0% { transform: scale(1); filter: brightness(1); }
+            100% { transform: scale(1.1); filter: brightness(1.3); }
+        }
+        
+        @keyframes waterAnimation {
+            0% { transform: translateY(0); filter: brightness(1); }
+            100% { transform: translateY(-3px); filter: brightness(1.2); }
+        }
+        
+        @keyframes earthAnimation {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(5deg); }
+        }
+        
+        @keyframes airAnimation {
+            0% { transform: translateX(-2px); opacity: 0.8; }
+            50% { transform: translateX(2px); opacity: 1; }
+            100% { transform: translateX(-2px); opacity: 0.8; }
+        }
+        
+        /* Estilo para descobertas especiais */
+        .special-discovery {
+            animation: specialDiscovery 1s ease-in-out;
+            position: relative;
+        }
+        
+        .special-discovery::before {
+            content: '✨ RARO! ✨';
+            position: absolute;
+            top: -25px;
+            left: 0;
+            right: 0;
+            color: gold;
+            font-weight: bold;
+            font-size: 0.8em;
+            text-shadow: 0 0 5px rgba(255, 215, 0, 0.7);
+        }
+        
+        /* Animação para novo elemento descoberto */
+        @keyframes newElementAnimation {
+            0% { transform: scale(0.5); opacity: 0; }
+            50% { transform: scale(1.2); opacity: 1; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .new-element-animation {
+            animation: newElementAnimation 0.8s ease-out forwards;
+        }
+        
+        /* Notificação grande para elemento descoberto */
+        .discovery-notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 20px 40px;
+            border-radius: 20px;
+            text-align: center;
+            z-index: 1000;
+            box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+            opacity: 0;
+            transition: all 0.3s ease;
+            pointer-events: none;
+        }
+        
+        .discovery-notification.show {
+            transform: translate(-50%, -50%) scale(1);
+            opacity: 1;
+        }
+        
+        .discovery-notification h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+            color: #00ffff;
+        }
+        
+        .discovery-notification .element-icon {
+            font-size: 4em;
+            margin: 10px 0;
+        }
+        
+        /* Estilos para o sistema de busca e filtros */
+        .inventory-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+        
+        .search-box::placeholder {
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .search-box:focus {
+            background: rgba(255, 255, 255, 0.3);
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+        }
+        
+        .filter-button {
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-button:hover, .filter-button.active {
+            background: rgba(0, 255, 255, 0.4);
+            transform: scale(1.05);
+        }
+        
+        /* Estilos para o menu de ajuda */
+        .help-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: rgba(0, 255, 255, 0.7);
+            color: white;
+            font-size: 1.5em;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+            transition: all 0.3s ease;
+            z-index: 100;
+        }
+        
+        .help-button:hover {
+            transform: scale(1.1);
+            background: rgba(0, 255, 255, 0.9);
+        }
+        
+        .help-button::after {
+            content: '🪄';
+            font-size: 1.2em;
+        }
+        
+        .help-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+        
+        .help-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        .help-content {
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+            background: rgba(30, 30, 60, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);
+            position: relative;
+        }
+        
+        .close-help {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5em;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s ease;
+        }
+        
+        .close-help:hover {
+            color: white;
+            transform: scale(1.1);
+        }
+        
+        .help-section {
+            margin-bottom: 20px;
+        }
+        
+        .help-section h3 {
+            color: #00ffff;
+            margin-bottom: 10px;
+            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
+            padding-bottom: 5px;
+        }
+        
+        .recipe {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .recipe-elements {
+            display: flex;
+            align-items: center;
+        }
+        
+        .recipe-element {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-right: 10px;
+        }
+        
+        .recipe-icon {
+            font-size: 1.5em;
+        }
+        
+        .recipe-plus {
+            margin: 0 10px;
+            font-size: 1.2em;
+        }
+        
+        .recipe-equals {
+            margin: 0 10px;
+            font-size: 1.2em;
+        }
+        
+        .challenges {
+            margin-top: 20px;
+        }
+        
+        .challenge {
+            background: rgba(255, 215, 0, 0.2);
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            border: 1px solid rgba(255, 215, 0, 0.5);
+            position: relative;
+        }
+        
+        .challenge-title {
+            color: gold;
+            font-weight: bold;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .challenge-title::before {
+            content: '📜';
+            font-size: 1.2em;
+        }
+        
+        @keyframes specialDiscovery {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Fábrica de Elementos</h1>
+        
+        <div class="game-area">
+            <div class="workspace">
+                <div class="workspace-slot" id="slot1"></div>
+                <div class="workspace-slot" id="slot2"></div>
+                <button class="combine-button" id="combine-btn" disabled>Combinar</button>
+                <div class="counter">Elementos: <span id="element-count">4</span>/<span id="total-elements">50</span></div>
+                <div class="progress-container">
+                    <div class="progress-bar" id="progress-bar"></div>
+                </div>
+            </div>
+            
+            <div class="result-area">
+                <div class="result-message" id="result-message">Selecione dois elementos para combinar</div>
+                <div class="result-element" id="result-element"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="inventory-title">Inventário</div>
+        <div class="inventory-controls">
+            <input type="text" class="search-box" id="search-box" placeholder="Buscar elementos...">
+            <button class="filter-button active" data-filter="all">Todos</button>
+            <button class="filter-button" data-filter="basic">Básicos</button>
+            <button class="filter-button" data-filter="special">Especiais</button>
+        </div>
+        <div class="inventory" id="inventory"></div>
+        <button class="reset-button" id="reset-btn">Reiniciar Jogo</button>
+    </div>
+    
+    <!-- Notificação de descoberta -->
+    <div class="discovery-notification" id="discovery-notification">
+        <h2>VOCÊ CRIOU:</h2>
+        <div class="element-icon" id="notification-icon"></div>
+        <h2 id="notification-name"></h2>
+    </div>
+    
+    <!-- Botão de ajuda -->
+    <div class="help-button" id="help-button"></div>
+    
+    <!-- Modal de ajuda -->
+    <div class="help-modal" id="help-modal">
+        <div class="help-content">
+            <div class="close-help" id="close-help">×</div>
+            <h2>Guia da Fábrica de Elementos</h2>
+            
+            <div class="help-section">
+                <h3>Como Jogar</h3>
+                <p>Arraste elementos do inventário para os slots de trabalho e clique em "Combinar" para criar novos elementos. Descubra combinações secretas para desbloquear elementos especiais!</p>
+                
+                <h4>Combinações Básicas:</h4>
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🔥</div>
+                            <div>Fogo</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">💧</div>
+                            <div>Água</div>
+                        </div>
+                        <div class="recipe-equals">=</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">☁️</div>
+                            <div>Vapor</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌍</div>
+                            <div>Terra</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">💧</div>
+                            <div>Água</div>
+                        </div>
+                        <div class="recipe-equals">=</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌱</div>
+                            <div>Planta</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌍</div>
+                            <div>Terra</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🔥</div>
+                            <div>Fogo</div>
+                        </div>
+                        <div class="recipe-equals">=</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌋</div>
+                            <div>Lava</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="help-section">
+                <h3>Combinações Básicas</h3>
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🔥</div>
+                            <div>Fogo</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">💧</div>
+                            <div>Água</div>
+                        </div>
+                    </div>
+                    <div class="recipe-equals">=</div>
+                    <div class="recipe-element">
+                        <div class="recipe-icon">☁️</div>
+                        <div>Vapor</div>
+                    </div>
+                </div>
+                
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🔥</div>
+                            <div>Fogo</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌍</div>
+                            <div>Terra</div>
+                        </div>
+                    </div>
+                    <div class="recipe-equals">=</div>
+                    <div class="recipe-element">
+                        <div class="recipe-icon">🌋</div>
+                        <div>Lava</div>
+                    </div>
+                </div>
+                
+                <div class="recipe">
+                    <div class="recipe-elements">
+                        <div class="recipe-element">
+                            <div class="recipe-icon">💧</div>
+                            <div>Água</div>
+                        </div>
+                        <div class="recipe-plus">+</div>
+                        <div class="recipe-element">
+                            <div class="recipe-icon">🌍</div>
+                            <div>Terra</div>
+                        </div>
+                    </div>
+                    <div class="recipe-equals">=</div>
+                    <div class="recipe-element">
+                        <div class="recipe-icon">💩</div>
+                        <div>Lama</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="help-section">
+                <h3>Desafios Secretos</h3>
+                <div class="challenges">
+                    <div class="challenge">
+                        <div class="challenge-title">Desafio do Dragão</div>
+                        <p>Descubra como criar o lendário Dragão combinando os elementos certos!</p>
+                    </div>
+                    <div class="challenge">
+                        <div class="challenge-title">Desafio da Vida</div>
+                        <p>Será que você consegue criar o elemento Vida? Dica: Comece com elementos básicos da natureza.</p>
+                    </div>
+                    <div class="challenge">
+                        <div class="challenge-title">Desafio da Magia</div>
+                        <p>A Magia existe neste mundo! Encontre os elementos místicos para criá-la.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Elementos do DOM
+        const slot1 = document.getElementById('slot1');
+        const slot2 = document.getElementById('slot2');
+        const combineBtn = document.getElementById('combine-btn');
+        const resultMessage = document.getElementById('result-message');
+        const resultElement = document.getElementById('result-element');
+        const inventory = document.getElementById('inventory');
+        const resetBtn = document.getElementById('reset-btn');
+        const elementCount = document.getElementById('element-count');
+
+        // Estado do jogo
+        let selectedSlot = null;
+        let workspaceElements = [null, null];
+        let discoveredElements = [];
+        let currentFilter = 'all';
+        
+        // Elementos para desafios secretos
+        const secretChallenges = [
+            { 
+                name: 'Dragão', 
+                icon: '🐉', 
+                emoji: '🐉',
+                recipe: ['Fogo', 'Réptil', 'Ar', 'Magia'],
+                message: '🔥 LENDÁRIO! 🔥 Você criou um Dragão!'
+            },
+            { 
+                name: 'Vida', 
+                icon: '✨', 
+                emoji: '✨',
+                recipe: ['Água', 'Terra', 'Energia Solar', 'Tempo'],
+                message: '✨ EXTRAORDINÁRIO! ✨ Você descobriu a Vida!'
+            },
+            { 
+                name: 'Magia', 
+                icon: '🔮', 
+                emoji: '🔮',
+                recipe: ['Energia', 'Luz', 'Cristal', 'Conhecimento'],
+                message: '🔮 MÍSTICO! 🔮 Você desvendou a Magia!'
+            }
+        ];
+
+        // Elementos básicos
+        const basicElements = [
+            { name: 'Fogo', icon: '🔥', emoji: '🔥', class: 'fire-icon' },
+            { name: 'Água', icon: '💧', emoji: '💧', class: 'water-icon' },
+            { name: 'Terra', icon: '🌍', emoji: '🌍', class: 'earth-icon' },
+            { name: 'Ar', icon: '💨', emoji: '💨', class: 'air-icon' }
+        ];
+
+        // Elementos raros/especiais
+        const specialElements = [
+            'Internet', 'Computador', 'Dinossauro', 'Extinção', 'Energia Solar', 
+            'Energia Hidrelétrica', 'Energia Eólica', 'Cordilheira', 'Oceano',
+            'Dragão', 'Vida', 'Magia', 'Luz', 'Cristal', 'Conhecimento', 'Energia'
+        ];
+        
+        // Total de elementos possíveis
+        const totalPossibleElements = 50;
+        
+        // Sons do jogo
+        const successSound = document.getElementById('success-sound');
+        const errorSound = document.getElementById('error-sound');
+        const specialSound = document.getElementById('special-sound');
+        
+        // Combinações possíveis
+        const combinations = [
+            { elements: ['Fogo', 'Água'], result: { name: 'Vapor', icon: '☁️', emoji: '☁️' } },
+            { elements: ['Fogo', 'Terra'], result: { name: 'Lava', icon: '🌋', emoji: '🌋' } },
+            { elements: ['Água', 'Terra'], result: { name: 'Lama', icon: '💩', emoji: '💩' } },
+            { elements: ['Ar', 'Fogo'], result: { name: 'Fumaça', icon: '🌫️', emoji: '🌫️' } },
+            { elements: ['Ar', 'Água'], result: { name: 'Chuva', icon: '🌧️', emoji: '🌧️' } },
+            { elements: ['Ar', 'Terra'], result: { name: 'Poeira', icon: '💨', emoji: '💨' } },
+            { elements: ['Lava', 'Água'], result: { name: 'Pedra', icon: '🪨', emoji: '🪨' } },
+            { elements: ['Fogo', 'Pedra'], result: { name: 'Metal', icon: '⚙️', emoji: '⚙️' } },
+            { elements: ['Metal', 'Fogo'], result: { name: 'Ferramenta', icon: '🔨', emoji: '🔨' } },
+            { elements: ['Ferramenta', 'Terra'], result: { name: 'Agricultura', icon: '🌱', emoji: '🌱' } },
+            { elements: ['Agricultura', 'Água'], result: { name: 'Planta', icon: '🌿', emoji: '🌿' } },
+            { elements: ['Planta', 'Ar'], result: { name: 'Árvore', icon: '🌳', emoji: '🌳' } },
+            { elements: ['Árvore', 'Ferramenta'], result: { name: 'Madeira', icon: '🪵', emoji: '🪵' } },
+            { elements: ['Madeira', 'Ferramenta'], result: { name: 'Roda', icon: '🛞', emoji: '🛞' } },
+            { elements: ['Roda', 'Metal'], result: { name: 'Máquina', icon: '⚙️', emoji: '⚙️' } },
+            { elements: ['Máquina', 'Fogo'], result: { name: 'Motor', icon: '🔋', emoji: '🔋' } },
+            { elements: ['Motor', 'Roda'], result: { name: 'Carro', icon: '🚗', emoji: '🚗' } },
+            { elements: ['Água', 'Planta'], result: { name: 'Alga', icon: '🦠', emoji: '🦠' } },
+            { elements: ['Alga', 'Tempo'], result: { name: 'Peixe', icon: '🐟', emoji: '🐟' } },
+            { elements: ['Peixe', 'Terra'], result: { name: 'Anfíbio', icon: '🐸', emoji: '🐸' } },
+            { elements: ['Anfíbio', 'Terra'], result: { name: 'Réptil', icon: '🦎', emoji: '🦎' } },
+            { elements: ['Réptil', 'Ar'], result: { name: 'Pássaro', icon: '🐦', emoji: '🐦' } },
+            { elements: ['Réptil', 'Tempo'], result: { name: 'Dinossauro', icon: '🦖', emoji: '🦖' } },
+            { elements: ['Dinossauro', 'Fogo'], result: { name: 'Extinção', icon: '☄️', emoji: '☄️' } },
+            { elements: ['Extinção', 'Terra'], result: { name: 'Fóssil', icon: '🦴', emoji: '🦴' } },
+            { elements: ['Fóssil', 'Tempo'], result: { name: 'Petróleo', icon: '🛢️', emoji: '🛢️' } },
+            { elements: ['Petróleo', 'Fogo'], result: { name: 'Plástico', icon: '🧪', emoji: '🧪' } },
+            { elements: ['Plástico', 'Máquina'], result: { name: 'Computador', icon: '💻', emoji: '💻' } },
+            { elements: ['Computador', 'Computador'], result: { name: 'Internet', icon: '🌐', emoji: '🌐' } },
+            { elements: ['Ar', 'Ar'], result: { name: 'Pressão', icon: '🌀', emoji: '🌀' } },
+            { elements: ['Pressão', 'Água'], result: { name: 'Tsunami', icon: '🌊', emoji: '🌊' } },
+            { elements: ['Pressão', 'Terra'], result: { name: 'Terremoto', icon: '🌋', emoji: '🌋' } },
+            { elements: ['Água', 'Água'], result: { name: 'Lago', icon: '🏞️', emoji: '🏞️' } },
+            { elements: ['Lago', 'Lago'], result: { name: 'Oceano', icon: '🌊', emoji: '🌊' } },
+            { elements: ['Terra', 'Terra'], result: { name: 'Montanha', icon: '⛰️', emoji: '⛰️' } },
+            { elements: ['Montanha', 'Montanha'], result: { name: 'Cordilheira', icon: '🏔️', emoji: '🏔️' } },
+            { elements: ['Fogo', 'Fogo'], result: { name: 'Plasma', icon: '⚡', emoji: '⚡' } },
+            { elements: ['Plasma', 'Ar'], result: { name: 'Relâmpago', icon: '⚡', emoji: '⚡' } },
+            { elements: ['Relâmpago', 'Terra'], result: { name: 'Eletricidade', icon: '💡', emoji: '💡' } },
+            { elements: ['Eletricidade', 'Metal'], result: { name: 'Ímã', icon: '🧲', emoji: '🧲' } },
+            { elements: ['Água', 'Eletricidade'], result: { name: 'Energia Hidrelétrica', icon: '💧⚡', emoji: '💧⚡' } },
+            { elements: ['Ar', 'Eletricidade'], result: { name: 'Energia Eólica', icon: '💨⚡', emoji: '💨⚡' } },
+            { elements: ['Fogo', 'Eletricidade'], result: { name: 'Energia Solar', icon: '☀️⚡', emoji: '☀️⚡' } },
+            { elements: ['Água', 'Montanha'], result: { name: 'Cachoeira', icon: '🏞️', emoji: '🏞️' } },
+            { elements: ['Fogo', 'Ar'], result: { name: 'Tempo', icon: '⏳', emoji: '⏳' } },
+            // Novas combinações para os desafios secretos
+            { elements: ['Eletricidade', 'Luz'], result: { name: 'Energia', icon: '⚡', emoji: '⚡' } },
+            { elements: ['Energia Solar', 'Água'], result: { name: 'Luz', icon: '🌟', emoji: '🌟' } },
+            { elements: ['Pedra', 'Pressão'], result: { name: 'Cristal', icon: '💎', emoji: '💎' } },
+            { elements: ['Internet', 'Humano'], result: { name: 'Conhecimento', icon: '📚', emoji: '📚' } },
+            { elements: ['Réptil', 'Fogo'], result: { name: 'Dragão', icon: '🐉', emoji: '🐉' } },
+            { elements: ['Água', 'Terra'], result: { name: 'Planta', icon: '🌿', emoji: '🌿' } },
+            { elements: ['Planta', 'Energia Solar'], result: { name: 'Vida', icon: '✨', emoji: '✨' } },
+            { elements: ['Energia', 'Cristal'], result: { name: 'Magia', icon: '🔮', emoji: '🔮' } },
+            { elements: ['Planta', 'Tempo'], result: { name: 'Humano', icon: '👤', emoji: '👤' } }
+        ];
+
+        // Inicializar o jogo
+        function initGame() {
+            // Carregar elementos salvos ou usar os básicos
+            const savedElements = localStorage.getItem('fabricaElementosData');
+            if (savedElements) {
+                discoveredElements = JSON.parse(savedElements);
+            } else {
+                discoveredElements = [...basicElements];
+            }
+
+            updateInventory();
+            updateElementCount();
+        }
+
+        // Atualizar o inventário
+        function updateInventory() {
+            inventory.innerHTML = '';
+            
+            // Filtrar elementos com base no filtro atual e na busca
+            const searchTerm = document.getElementById('search-box').value.toLowerCase();
+            
+            discoveredElements.forEach(element => {
+                // Verificar se o elemento passa pelo filtro
+                const isSpecial = specialElements.includes(element.name);
+                const isBasic = basicElements.some(e => e.name === element.name);
+                
+                let shouldShow = false;
+                
+                if (currentFilter === 'all') {
+                    shouldShow = true;
+                } else if (currentFilter === 'special' && isSpecial) {
+                    shouldShow = true;
+                } else if (currentFilter === 'basic' && isBasic) {
+                    shouldShow = true;
+                }
+                
+                // Verificar se o elemento passa pela busca
+                if (searchTerm && !element.name.toLowerCase().includes(searchTerm)) {
+                    shouldShow = false;
+                }
+                
+                if (shouldShow) {
+                    const elementDiv = createElementDiv(element);
+                    inventory.appendChild(elementDiv);
+                }
+            });
+        }
+
+        // Criar div de elemento
+        function createElementDiv(element, isNew = false) {
+            const elementDiv = document.createElement('div');
+            elementDiv.className = 'element';
+            
+            // Adicionar classe para elemento novo
+            if (isNew) {
+                elementDiv.classList.add('new');
+                setTimeout(() => {
+                    elementDiv.classList.remove('new');
+                }, 3000);
+            }
+            
+            // Adicionar classe especial para animação do ícone
+            const iconClass = element.class || '';
+            
+            elementDiv.innerHTML = `
+                <div class="element-icon ${iconClass}">${element.emoji}</div>
+                <div class="element-name">${element.name}</div>
+            `;
+            elementDiv.draggable = true;
+            
+            // Eventos de drag and drop
+            elementDiv.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', element.name);
+                elementDiv.classList.add('dragging');
+                // Armazenar o elemento que está sendo arrastado
+                window.draggedElement = element;
+            });
+            
+            elementDiv.addEventListener('dragend', () => {
+                elementDiv.classList.remove('dragging');
+                window.draggedElement = null;
+            });
+
+            return elementDiv;
+        }
+
+        // Adicionar elemento ao slot
+        function addElementToSlot(element, slotIndex) {
+            workspaceElements[slotIndex] = element;
+            updateWorkspaceSlot(slotIndex === 0 ? slot1 : slot2, element);
+            selectedSlot = slotIndex;
+            updateCombineButton();
+        }
+
+        // Atualizar slot de trabalho
+        function updateWorkspaceSlot(slot, element) {
+            if (element) {
+                const iconClass = element.class || '';
+                slot.innerHTML = `
+                    <div class="element-icon ${iconClass}">${element.emoji}</div>
+                    <div class="element-name">${element.name}</div>
+                `;
+            } else {
+                slot.innerHTML = '';
+            }
+
+            // Atualizar classe ativa
+            slot1.classList.toggle('active', selectedSlot === 0);
+            slot2.classList.toggle('active', selectedSlot === 1);
+        }
+
+        // Atualizar botão de combinar
+        function updateCombineButton() {
+            combineBtn.disabled = workspaceElements[0] === null || workspaceElements[1] === null;
+        }
+
+        // Combinar elementos
+        function combineElements() {
+            // Adicionar efeito visual ao botão combinar
+            document.querySelector('.combine-button').classList.add('button-active');
+            setTimeout(() => {
+                document.querySelector('.combine-button').classList.remove('button-active');
+            }, 500);
+            
+            const elem1 = workspaceElements[0].name;
+            const elem2 = workspaceElements[1].name;
+
+            // Verificar combinação nos dois sentidos
+            let combination = combinations.find(c => 
+                (c.elements[0] === elem1 && c.elements[1] === elem2) || 
+                (c.elements[0] === elem2 && c.elements[1] === elem1)
+            );
+
+            // Verificar combinações especiais de 3 elementos (simulando)
+            const specialTrioCombination = checkSpecialCombinations();
+
+            if (combination || specialTrioCombination) {
+                // Tocar som de sucesso
+                successSound.currentTime = 0;
+                successSound.play();
+                
+                const result = specialTrioCombination ? specialTrioCombination.result : combination.result;
+                const alreadyDiscovered = discoveredElements.some(e => e.name === result.name);
+
+                // Verificar se é um elemento especial
+                const isSpecial = specialElements.includes(result.name);
+                
+                // Se for especial, tocar som especial e fazer a tela tremer
+                if (isSpecial && !alreadyDiscovered) {
+                    specialSound.currentTime = 0;
+                    specialSound.play();
+                    
+                    // Efeito de tremor na tela para elementos raros
+                    document.body.classList.add('screen-shake');
+                    setTimeout(() => {
+                        document.body.classList.remove('screen-shake');
+                    }, 1000);
+                }
+                
+                // Mensagem com descrição para novos elementos
+                let elementDescription = getElementDescription(result.name);
+                
+                resultMessage.textContent = alreadyDiscovered ? 
+                    `Você criou ${result.name}!` : 
+                    isSpecial ? 
+                        `✨ DESCOBERTA ESPECIAL! ✨ Você encontrou um elemento raro: ${result.name}!` :
+                        `Você descobriu um novo elemento: ${result.name}!`;
+
+                // Adicionar classe especial para elementos raros
+                const specialClass = isSpecial ? 'special-discovery' : '';
+                
+                resultElement.innerHTML = `
+                    <div class="element-icon ${specialClass}">${result.emoji}</div>
+                    <div class="element-name">${result.name}</div>
+                `;
+                resultElement.classList.add('show');
+                
+                // Adicionar animação ao resultado
+                const iconElement = resultElement.querySelector('.element-icon');
+                iconElement.classList.add('new-element-animation');
+                
+                // Remover a classe de animação após a animação terminar
+                setTimeout(() => {
+                    iconElement.classList.remove('new-element-animation');
+                }, 1000);
+
+                // Adicionar ao inventário se for novo
+                if (!alreadyDiscovered) {
+                    discoveredElements.push(result);
+                    saveGame();
+                    updateInventory(result.name);
+                    updateElementCount();
+                    
+                    // Mostrar notificação grande com descrição
+                    showDiscoveryNotification(result, isSpecial, elementDescription);
+                    
+                    // Verificar conquistas
+                    checkAchievements();
+                }
+            } else {
+                // Tocar som de erro
+                errorSound.currentTime = 0;
+                errorSound.play();
+                
+                resultMessage.textContent = 'Combinação inválida. Tente outra!';
+                resultElement.innerHTML = '';
+                resultElement.classList.remove('show');
+            }
+
+            // Limpar workspace após combinar
+            clearWorkspace();
+        }
+        
+        // Verificar combinações especiais (simulando combinações de 3+ elementos)
+        function checkSpecialCombinations() {
+            // Aqui podemos simular combinações especiais baseadas nos elementos recentemente usados
+            // ou em elementos específicos no inventário
+            
+            // Exemplo: Golem de Magma (Fogo + Ar + Terra)
+            if (discoveredElements.some(e => e.name === 'Fogo') && 
+                discoveredElements.some(e => e.name === 'Ar') && 
+                discoveredElements.some(e => e.name === 'Terra') && 
+                workspaceElements[0].name === 'Fogo' && workspaceElements[1].name === 'Terra') {
+                    
+                // Verificar se já foi descoberto
+                if (!discoveredElements.some(e => e.name === 'Golem de Magma')) {
+                    return {
+                        result: { name: 'Golem de Magma', icon: '🔥🪨', emoji: '🔥🪨', class: 'fire-icon' }
+                    };
+                }
+            }
+            
+            return null;
+        }
+        
+        // Obter descrição para um elemento
+        function getElementDescription(elementName) {
+            const descriptions = {
+                'Lama': 'Uma mistura pegajosa da força da Terra com o calor do Fogo... Melhor usar botas!',
+                'Fogo': 'A energia primordial que aquece e transforma tudo que toca.',
+                'Água': 'O fluido da vida, flexível e adaptável como poucos elementos.',
+                'Terra': 'Sólida e confiável, a base de toda a criação.',
+                'Ar': 'Invisível mas essencial, o sopro que anima o mundo.',
+                'Lava': 'Terra enfurecida, derretida pelo poder do fogo.',
+                'Vapor': 'Água que sonha em ser ar, flutuando para o céu.',
+                'Golem de Magma': 'Uma criatura nascida do fogo da terra, com coração de pedra incandescente!',
+                'Dragão': 'A lendária criatura que domina os céus com seu sopro de fogo!',
+                'Vida': 'A mais complexa e misteriosa força do universo, sempre em evolução.',
+                'Magia': 'A arte de dobrar a realidade com a força da vontade e conhecimento arcano.'                
+            };
+            
+            return descriptions[elementName] || 'Um novo elemento para sua coleção!';
+        }
+
+        // Limpar workspace
+        function clearWorkspace() {
+            workspaceElements = [null, null];
+            updateWorkspaceSlot(slot1, null);
+            updateWorkspaceSlot(slot2, null);
+            selectedSlot = null;
+            updateCombineButton();
+        }
+
+        // Salvar jogo
+        function saveGame() {
+            localStorage.setItem('fabricaElementosData', JSON.stringify(discoveredElements));
+        }
+
+        // Resetar jogo
+        function resetGame() {
+            if (confirm('Tem certeza que deseja reiniciar o jogo? Todos os elementos descobertos serão perdidos.')) {
+                localStorage.removeItem('fabricaElementosData');
+                discoveredElements = [...basicElements];
+                updateInventory();
+                updateElementCount();
+                clearWorkspace();
+                resultMessage.textContent = 'Jogo reiniciado. Comece a combinar!';
+                resultElement.innerHTML = '';
+                resultElement.classList.remove('show');
+            }
+        }
+
+        // Atualizar contador de elementos e barra de progresso
+        function updateElementCount() {
+            const count = discoveredElements.length;
+            elementCount.textContent = count;
+            document.getElementById('total-elements').textContent = totalPossibleElements;
+            
+            // Atualizar barra de progresso
+            const progressPercentage = (count / totalPossibleElements) * 100;
+            document.getElementById('progress-bar').style.width = `${progressPercentage}%`;
+        }
+
+        // Event Listeners
+        slot1.addEventListener('click', () => {
+            selectedSlot = 0;
+            slot1.classList.add('active');
+            slot2.classList.remove('active');
+        });
+
+        slot2.addEventListener('click', () => {
+            selectedSlot = 1;
+            slot2.classList.add('active');
+            slot1.classList.remove('active');
+        });
+        
+        // Configurar eventos de drag and drop para os slots
+        [slot1, slot2].forEach((slot, index) => {
+            slot.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                slot.classList.add('drag-over');
+            });
+            
+            slot.addEventListener('dragleave', () => {
+                slot.classList.remove('drag-over');
+            });
+            
+            slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.classList.remove('drag-over');
+                
+                if (window.draggedElement) {
+                    addElementToSlot(window.draggedElement, index);
+                }
+            });
+        });
+
+        combineBtn.addEventListener('click', combineElements);
+        resetBtn.addEventListener('click', resetGame);
+
+        // Mostrar notificação grande de descoberta
+        function showDiscoveryNotification(element, isSpecial) {
+            const notification = document.getElementById('discovery-notification');
+            const notificationIcon = document.getElementById('notification-icon');
+            const notificationName = document.getElementById('notification-name');
+            
+            // Adicionar classe especial se for elemento especial
+            const specialClass = isSpecial ? 'special-discovery' : '';
+            
+            notificationIcon.className = `element-icon ${specialClass}`;
+            notificationIcon.innerHTML = element.emoji;
+            notificationName.textContent = element.name;
+            
+            // Mostrar notificação
+            notification.classList.add('show');
+            
+            // Esconder após 2 segundos
+            setTimeout(() => {
+                notification.classList.remove('show');
+            }, 2000);
+        }
+        
+        // Configurar eventos para o sistema de busca e filtros
+        document.getElementById('search-box').addEventListener('input', updateInventory);
+        
+        // Configurar eventos para os botões de filtro
+        document.querySelectorAll('.filter-button').forEach(button => {
+            button.addEventListener('click', () => {
+                // Remover classe ativa de todos os botões
+                document.querySelectorAll('.filter-button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+                
+                // Adicionar classe ativa ao botão clicado
+                button.classList.add('active');
+                
+                // Atualizar filtro atual
+                currentFilter = button.getAttribute('data-filter');
+                
+                // Atualizar inventário
+                updateInventory();
+            });
+        });
+        
+        // Configurar eventos para o menu de ajuda
+        document.getElementById('help-button').addEventListener('click', () => {
+            document.getElementById('help-modal').classList.add('show');
+        });
+        
+        document.getElementById('close-help').addEventListener('click', () => {
+            document.getElementById('help-modal').classList.remove('show');
+        });
+        
+        // Fechar o modal de ajuda ao clicar fora do conteúdo
+        document.getElementById('help-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('help-modal')) {
+                document.getElementById('help-modal').classList.remove('show');
+            }
+        });
+        
+        // Inicializar o jogo
+        initGame();
+    </script>
+</body>
+</html>
